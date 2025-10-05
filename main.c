@@ -5,16 +5,16 @@
 #include "machine-state/machine-state.h"
 
 int main(int argc, const char * argv[]) {
-    struct ProgramInput programInput = getProgramInput(argc, argv);
+    struct ProgramInput input = getProgramInput(argc, argv);
 
-    if (programInput.error) { return 1; }
+    if (input.error) { return 1; }
 
-    if (programInput.binaryFilePath == NULL) { return 0; }
+    if (input.binaryFilePath == NULL) { return 0; }
 
-    FILE* binaryFile = fopen(programInput.binaryFilePath, "rb");
+    FILE* binaryFile = fopen(input.binaryFilePath, "rb");
 
     if (binaryFile == NULL) {
-        printf("Error: could not read file \"%s\"\n.", programInput.binaryFilePath);
+        printf("Error: could not read file \"%s\"\n.", input.binaryFilePath);
         return 1;
     }
 

@@ -31,7 +31,7 @@ void step(struct MachineState* state)
             ++state->PC;
             break;
         case 4: // ST
-            if (argument == 0x1fff) printf("%c", state->A);
+            if (argument == 0x1fff) putchar(state->A);
             else state->memory[argument] = state->A;
             ++state->PC;
             break;

@@ -2,3 +2,4 @@
 w16sim
 .depend
 *.o
+.DS_Store

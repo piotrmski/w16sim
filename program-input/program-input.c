@@ -71,7 +71,7 @@ struct ProgramInput getProgramInput(int argc, const char * argv[]) {
         printf("The symbols file must be in CSV format with three columns:\n");
         printf("- the memory address in 4-digit hexadecimal format (0x0000 - 0x1FFF; x lowercase, A-F uppercase),\n");
         printf("- data type (one of following: \"char\", \"int\", or \"instruction\", all lowercase; for 0x1FFF it's always \"char\"),\n");
-        printf("- label name (0-32 characters: digits, upper- or lowercase letters, and underscores; the first character can't be a digit).\n");
+        printf("- label name (0-31 characters: digits, upper- or lowercase letters, and underscores; the first character can't be a digit).\n");
         return (struct ProgramInput) { false, false, NULL, NULL };
     } else if (expectNextArgToBeSymbolsFilePath) {
         printf("Error: labels file path was not provided.\n");
