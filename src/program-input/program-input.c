@@ -70,7 +70,7 @@ struct ProgramInput getProgramInput(int argc, const char * argv[]) {
         printf("-s [path/to/symbols.csv] or --symbols [path/to/symbols.csv] - supplies the debugger with symbols info. Without -d or --debug it is ignored.\n\n");
         printf("The symbols file must be in CSV format with three columns:\n");
         printf("- the memory address in 4-digit hexadecimal format (0x0000 - 0x1FFF; x lowercase, A-F uppercase),\n");
-        printf("- data type (one of following: \"char\", \"int\", or \"instruction\", all lowercase; for 0x1FFF it's always \"char\"),\n");
+        printf("- data type (one of following: \"char\", \"int\", or \"instruction\", all lowercase),\n");
         printf("- label name (0-31 characters: digits, upper- or lowercase letters, and underscores; the first character can't be a digit).\n");
         return (struct ProgramInput) { false, false, NULL, NULL };
     } else if (expectNextArgToBeSymbolsFilePath) {

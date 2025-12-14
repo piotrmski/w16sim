@@ -1,3 +1,22 @@
+/*
+    W16ASM-test Copyright (C) 2025 Piotr Marczyński <piotrmski@gmail.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+    See file COPYING.
+*/
+
 #include <stdio.h>
 #include <stdbool.h>
 #include "program-input/program-input.h"
@@ -20,10 +39,10 @@ int main(int argc, const char * argv[]) {
 
     fseek(binaryFile, 0, SEEK_END);
     int fileSize = ftell(binaryFile);
-    int programLength = fileSize / sizeof(unsigned short);
+    int programLength = fileSize;
 
-    if (fileSize % 2 != 0 || programLength > 0x1FFE) {
-        printf("Error: The binary file size is invalid, should be even and less than 16382 bytes.\n"); // TODO make sure that the validity check and error message is correct.
+    if (programLength > 0x1FFF) {
+        printf("Error: The binary file size is invalid, should be less than 8192 bytes.\n");
         fclose(binaryFile);
         return 1;
     }
@@ -31,7 +50,7 @@ int main(int argc, const char * argv[]) {
     struct MachineState state = getInitialState();
 
     fseek(binaryFile, 0, SEEK_SET);
-    fread(state.memory, sizeof(unsigned short), programLength, binaryFile);
+    fread(state.memory, sizeof(unsigned char), programLength, binaryFile);
     fclose(binaryFile);
 
     // TODO check symbols file existence and validity, and create the debug runtime

@@ -1,23 +1,14 @@
-appname := w16sim
+appName := w16sim
+CFLAGS  := -std=c23
 
-srcfiles := $(shell find . -name "*.c")
-objects  := $(patsubst %.c, %.o, $(srcfiles))
+srcFiles := $(shell find src -name "*.c")
+objects  := $(patsubst %.c, %.o, $(srcFiles))
 
-all: $(appname)
+all: $(appName)
 
-$(appname): $(objects)
-	$(CC) $(LDFLAGS) -o $(appname) $(objects) $(LDLIBS)
-
-depend: .depend
-
-.depend: $(srcfiles)
-	rm -f ./.depend
-	$(CC) -MM $^>>./.depend;
+$(appName): $(objects)
+	$(CC) $(CFLAGS) -o dist/$(appName) $(objects)
+	cp COPYING dist/COPYING
 
 clean:
 	rm -f $(objects)
-
-dist-clean: clean
-	rm -f *~ .depend
-
-include .depend

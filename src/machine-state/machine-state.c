@@ -9,38 +9,39 @@ struct MachineState getInitialState()
 
 void step(struct MachineState* state)
 {
-    unsigned short instruction = state->memory[state->PC] >> 13;
-    unsigned short argument = state->memory[state->PC] & 0x1fff;
-    unsigned short memoryAtArgument = argument == 0x1fff ? getLastChar() : state->memory[argument];
+    unsigned short instruction = state->memory[state->PC] | ((state->PC == 0x1fff ? state->memory[0] : state->memory[state->PC + 1]) << 8);
+    unsigned char opcode = instruction >> 13;
+    unsigned short argument = instruction & 0x1fff;
+    unsigned char memoryAtArgument = argument == 0x1fff ? getLastChar() : state->memory[argument];
 
-    switch (instruction) {
+    switch (opcode) {
         case 0: // LD
             state->A = memoryAtArgument;
-            ++state->PC;
+            state->PC += 2;
             break;
         case 1: // NOT
             state->A = ~memoryAtArgument;
-            ++state->PC;
+            state->PC += 2;
             break;
         case 2: // ADD
             state->A = state->A + memoryAtArgument;
-            ++state->PC;
+            state->PC += 2;
             break;
         case 3: // AND
             state->A = state->A & memoryAtArgument;
-            ++state->PC;
+            state->PC += 2;
             break;
         case 4: // ST
             if (argument == 0x1fff) putchar(state->A);
             else state->memory[argument] = state->A;
-            ++state->PC;
+            state->PC += 2;
             break;
         case 5: // JMP
             if (state->PC == argument) state->isRunning = false;
             else state->PC = argument;
             break;
         case 6: // JMN
-            state->PC = (state->A & 0x8000) ? argument : state->PC + 1;
+            state->PC = (state->A & 0x80) ? argument : state->PC + 1;
             break;
         case 7: // JMZ
             state->PC = state->A == 0 ? argument : state->PC + 1;

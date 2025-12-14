@@ -5,9 +5,9 @@
 
 struct MachineState {
     bool isRunning;
-    unsigned short memory[0x1fff];
+    unsigned char memory[0x2000];
     unsigned short PC;
-    unsigned short A;
+    unsigned char A;
 };
 
 struct MachineState getInitialState();
