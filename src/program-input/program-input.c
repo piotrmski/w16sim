@@ -61,9 +61,10 @@ struct ProgramInput getProgramInput(int argc, const char * argv[]) {
     }
 
     if (argc == 1 || helpFlag) {
-        printf("W16 simulator. Usage:\n");
+        printf("W16 simulator. Copyright (C) 2025 Piotr Marczyński. This program is licensed under GNU GPL v3. See file COPYING.\n");
+        printf("Usage:\n");
         printf("w16sim [path/to/binary.bin]\n");
-        printf("runs the simulator until Ctrl+C is pressed, or until a JMP instruction to itself is detected\n\n");
+        printf("runs the simulator until Ctrl+C is pressed, or until a JMP instruction to the current address (unconditional infinite loop) is detected\n\n");
         printf("Flags:\n");
         printf("-h or --help - prints this message.\n");
         printf("-d or --debug - runs the simulator in paused state and enables the debugger.\n");

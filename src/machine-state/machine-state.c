@@ -4,15 +4,19 @@
 
 struct MachineState getInitialState()
 {
-    return (struct MachineState) { true, { 0 }, 0, 0 };
+    return (struct MachineState) { false, { 0 }, 0, 0 };
+}
+
+unsigned short getCurrentInstruction(struct MachineState* state) {
+    return state->memory[state->PC] | ((state->PC == 0x1fff ? state->memory[0] : state->memory[state->PC + 1]) << 8);
 }
 
 void step(struct MachineState* state)
 {
-    unsigned short instruction = state->memory[state->PC] | ((state->PC == 0x1fff ? state->memory[0] : state->memory[state->PC + 1]) << 8);
+    unsigned short instruction = getCurrentInstruction(state);
     unsigned char opcode = instruction >> 13;
     unsigned short argument = instruction & 0x1fff;
-    unsigned char memoryAtArgument = argument == 0x1fff ? getLastChar() : state->memory[argument];
+    unsigned char memoryAtArgument = argument == 0x1fff ? getLastChar() : state->memory[argument]; // TODO add time support
 
     switch (opcode) {
         case 0: // LD
@@ -37,7 +41,7 @@ void step(struct MachineState* state)
             state->PC += 2;
             break;
         case 5: // JMP
-            if (state->PC == argument) state->isRunning = false;
+            if (state->PC == argument) state->isUnconditionalInfiniteLoop = true;
             else state->PC = argument;
             break;
         case 6: // JMN

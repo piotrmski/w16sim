@@ -1,5 +1,5 @@
 /*
-    W16ASM-test Copyright (C) 2025 Piotr Marczyński <piotrmski@gmail.com>
+    W16SIM Copyright (C) 2025 Piotr Marczyński <piotrmski@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,8 +20,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "program-input/program-input.h"
-#include "keyboard-input/keyboard-input.h"
 #include "machine-state/machine-state.h"
+#include "debug-runtime/debug-runtime.h"
+#include "default-runtime/default-runtime.h"
 
 int main(int argc, const char * argv[]) {
     struct ProgramInput input = getProgramInput(argc, argv);
@@ -53,15 +54,11 @@ int main(int argc, const char * argv[]) {
     fread(state.memory, sizeof(unsigned char), programLength, binaryFile);
     fclose(binaryFile);
 
-    // TODO check symbols file existence and validity, and create the debug runtime
-
-    startCharacterInput();
-
-    do {
-        step(&state);
-    } while (state.isRunning);
-
-    endCharacterInput();
+    if (input.debugMode) {
+        runDebug(&state, input.symbolsFilePath);
+    } else {
+        runDefault(&state);
+    }
 
     return 0;
 }
