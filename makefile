@@ -7,7 +7,7 @@ objects  := $(patsubst %.c, %.o, $(srcFiles))
 all: $(appName)
 
 $(appName): $(objects)
-	$(CC) $(CFLAGS) -o dist/$(appName) $(objects)
+	$(CC) $(CFLAGS) -O3 -o dist/$(appName) $(objects)
 	cp COPYING dist/COPYING
 
 clean:

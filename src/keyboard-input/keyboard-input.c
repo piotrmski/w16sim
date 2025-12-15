@@ -8,8 +8,8 @@
 
 static pthread_t thread;
 static pthread_mutex_t lock;
-static char ch = 0;
-static bool active = false;
+static volatile char ch = 0;
+static volatile bool active = false;
 
 static void* readChar(void* _) {
     int readChar = 0;
