@@ -12,9 +12,10 @@
 #define LABEL_NAME_MAX_LENGTH 31
 
 enum DataType {
-    DataTypeInt = 0,
+    DataTypeNone = 0,
     DataTypeInstruction,
-    DataTypeChar
+    DataTypeChar,
+    DataTypeInt
 };
 
 enum Command {
@@ -32,15 +33,19 @@ enum Command {
 };
 
 struct Range {
-    unsigned short start;
-    unsigned short end;
+    int start;
+    int end;
 };
 
 static volatile bool isPaused = true;
 static bool isStepping = false;
 static char* labelNames[ADDRESS_SPACE_SIZE] = { NULL };
 static bool breakpoints[ADDRESS_SPACE_SIZE] = { false };
-static enum DataType dataTypes[ADDRESS_SPACE_SIZE] = { DataTypeInt, [IO_INTERFACE_ADDRESS] = DataTypeChar };
+static enum DataType dataTypes[ADDRESS_SPACE_SIZE] = { 
+    DataTypeNone,
+    [TIME_INTERFACE_ADDRESS] = DataTypeNone,
+    [IO_INTERFACE_ADDRESS] = DataTypeChar 
+};
 
 static char charUppercase(char ch) {
     if (ch >= 'a' && ch <= 'z') return ch - 0x20;
@@ -131,11 +136,17 @@ static void parseSymbolsFile(char* path) {
     }
 
     fclose(file);
+
+    for (int i = 0; i < ADDRESS_SPACE_SIZE - 1; ++i) {
+        if (dataTypes[i] == DataTypeInstruction) {
+            dataTypes[i+1] = DataTypeNone;
+        }
+    }
 }
 
 static void handleSigInt(int _) {
     if (isPaused) {
-        printf("\nQuitting\n");
+        printf("\nQuitting.\n");
         exit(0);
     } else {
         isPaused = true;
@@ -148,26 +159,25 @@ static bool isPrintableChar(unsigned char ch) {
 
 static void executeHelpCommand() {
     printf("Commands:\n\
-h     - prints this message\n\
-l     - lists memory values from PC-3 to PC+3\n\
-l X   - lists the memory value at X\n\
-l X:Y - lists memory values from X to Y\n\
-a     - lists all registered label names and their values\n\
-r     - lists register A value, program counter value, and instruction at PC \n\
-b     - sets a breakpoint at PC\n\
-b X   - sets a breakpoint at X\n\
-lb    - lists all breakpoints\n\
-d     - deletes a breakpoint at PC\n\
-d X   - deletes a breakpoint at X\n\
-c     - continues simulation\n\
-s     - steps simulation (executes one instruction and pauses)\n\
-q     - quits\n\
+h     - prints this message,\n\
+l     - lists the memory value at PC,\n\
+l X   - lists the memory value at X,\n\
+l X:Y - lists memory values from X to Y,\n\
+a     - lists all registered label names and their values,\n\
+r     - lists register A value, program counter value, and instruction at PC,\n\
+b     - sets a breakpoint at PC,\n\
+b X   - sets a breakpoint at X,\n\
+lb    - lists all breakpoints,\n\
+d     - deletes a breakpoint at PC,\n\
+d X   - deletes a breakpoint at X,\n\
+c     - continues simulation,\n\
+s     - steps simulation (executes one instruction and pauses),\n\
+q     - quits.\n\
 Replace X and Y with one of the following:\n\
-- a hexadecimal number starting with \"0x\",\n\
-- PC,\n\
-- PC+C or PC-C where C is a decimal number constant,\n\
+- a number - absolute address,\n\
+- +C or -C where C is a number - address relative to program counter,\n\
 - a label name,\n\
-- L+C or L-C where L is a label name and C is a decimal number constant.\n");
+- L+C or L-C where L is a label name and C is a number - address relative to a label.\n");
 }
 
 static void printInstruction(struct MachineState* state, int address) {
@@ -212,36 +222,74 @@ static void printInstruction(struct MachineState* state, int address) {
         unsigned char memoryValue = peekMemory(state, argument);
 
         if (labelNames[argument] == NULL) {
-            printf("   M[0x%04X] = %d ", argument, memoryValue);
+            printf("    M[0x%04X] = 0x%02X", argument, memoryValue);
         } else if (strlen(labelNames[argument]) > 8) {
-            printf("   M[%c%c%c%c%c...] = %d ", labelNames[argument][0], labelNames[argument][1], labelNames[argument][2], labelNames[argument][3], labelNames[argument][4], memoryValue);
+            printf("    M[%c%c%c%c%c...] = 0x%02X", labelNames[argument][0], labelNames[argument][1], labelNames[argument][2], labelNames[argument][3], labelNames[argument][4], memoryValue);
         } else {
-            printf("   M[%s] = %d ", labelNames[argument], memoryValue);
+            printf("    M[%s] = 0x%02X", labelNames[argument], memoryValue);
         }
 
         if (dataTypes[argument] == DataTypeChar && isPrintableChar(memoryValue)) {
-            printf("'%c'", memoryValue);
-        } else {
-            printf("0x%02X", memoryValue);
+            printf(" '%c'", memoryValue);
+        } else if (dataTypes[argument] == DataTypeInt) {
+            printf(" %d", memoryValue);
         }
     }
 }
 
 
-static unsigned short parseAddressArgument(struct MachineState* state, char* argument) {
-    
+static int parseAddressArgument(struct MachineState* state, char* argument) {
+    // TODO handle absolute address
+    // TODO handle relative address
+    // TODO handle label
+    // TODO handle address relative to label
+    return 0;
 }
 
 static struct Range parseAddressRangeArgument(struct MachineState* state, char* argument) {
-    
+    char* startString = strtok(argument, ":");
+    char* endString = strtok(NULL, "");
+
+    int start = parseAddressArgument(state, startString);
+    if (start < 0) {
+        return (struct Range) { -1, -1 };
+    }
+
+    if (endString == NULL) {
+        return (struct Range) { start, start };
+    }
+
+    int end = parseAddressArgument(state, endString);
+    if (end < 0) {
+        return (struct Range) { -1, -1 };
+    }
+
+    if (end < start) {
+        printf("Address range 0x%04X:0x%04X is invalid.\n", start, end);
+        return (struct Range) { -1, -1 };
+    }
+
+    return (struct Range) { start, end };
 }
 
 static void executeListMemoryCommand(struct MachineState* state, char* argument) {
+    struct Range addresses = parseAddressRangeArgument(state, argument);
+    if (addresses.start < 0) return;
+
     // TODO
 }
 
 static void executeListBreakpointsCommand(struct MachineState* state) {
-    // TODO
+    bool anyBreakpointDefined = false;
+    for (int i = 0; i < ADDRESS_SPACE_SIZE; ++i) {
+        if (breakpoints[i]) {
+            // TODO
+            anyBreakpointDefined = true;
+        }
+    }
+    if (!anyBreakpointDefined) {
+        printf("No breakpoint set.\n");
+    }
 }
 
 static void executeListLabelsCommand() {
@@ -253,31 +301,40 @@ static void executeListLabelsCommand() {
         }
     }
     if (!anyLabelDefined) {
-        printf("No labels defined\n");
+        printf("No labels defined.\n");
     }
 }
 
 static void executeListRegistersCommand(struct MachineState* state) {
-    printf("A = %d", state->A);
+    printf("A = 0x%02X", state->A);
 
     if (isPrintableChar(state->A)) {
         printf(" '%c'", state->A);
     } else {
-        printf(" 0x%02X", state->A);
+        printf(" %d", state->A);
     }
 
-    printf("   PC = 0x%04X   instruction = ", state->PC);
+    printf("    PC = 0x%04X", state->PC);
+    if (labelNames[state->PC] != NULL) {
+        printf(" %s", labelNames[state->PC]);
+    }
+
+    printf("    instruction = ");
 
     printInstruction(state, state->PC);
 
     printf("\n");
 }
 
-static void executeAddBreakpointCommand(char* argument) {
+static void executeAddBreakpointCommand(struct MachineState* state, char* argument) {
+    int address = parseAddressArgument(state, argument);
+    if (address < 0) return;
     // TODO
 }
 
-static void executeDeleteBreakpointCommand(char* argument) {
+static void executeDeleteBreakpointCommand(struct MachineState* state, char* argument) {
+    int address = parseAddressArgument(state, argument);
+    if (address < 0) return;
     // TODO
 }
 
@@ -353,16 +410,16 @@ static bool executeCommand(struct MachineState* state, char* fullCommand) {
         case CommandListRegisters:
             executeListRegistersCommand(state); break; 
         case CommandAddBreakpoint:
-            executeAddBreakpointCommand(argument); break;
+            executeAddBreakpointCommand(state, argument); break;
         case CommandDeleteBreakpoint:
-            executeDeleteBreakpointCommand(argument); break;
+            executeDeleteBreakpointCommand(state, argument); break;
         case CommandContinue:
             return false;
         case CommandStep:
             isStepping = true;
             return false;
         case CommandQuit:
-            printf("Quitting\n");
+            printf("Quitting.\n");
             exit(0);
         default: break;
     }

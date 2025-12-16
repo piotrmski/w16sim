@@ -87,10 +87,10 @@ void step(struct MachineState* state)
             else state->PC = argument;
             break;
         case 6: // JMN
-            state->PC = (state->A & 0x80) ? argument : state->PC + 1;
+            state->PC = (state->A & 0x80) ? argument : state->PC + 2;
             break;
         case 7: // JMZ
-            state->PC = state->A == 0 ? argument : state->PC + 1;
+            state->PC = state->A == 0 ? argument : state->PC + 2;
             break;
     }
     
