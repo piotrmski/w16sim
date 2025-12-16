@@ -172,8 +172,8 @@ l X   - lists the memory value at X,\n\
 l X:Y - lists memory values from X to Y,\n\
 a     - lists all registered label names and their values,\n\
 r     - lists register A value, program counter value, and instruction at PC,\n\
-b     - sets a breakpoint at PC,\n\
-b X   - sets a breakpoint at X,\n\
+b     - adds a breakpoint at PC,\n\
+b X   - adds a breakpoint at X,\n\
 lb    - lists all breakpoints,\n\
 d     - deletes a breakpoint at PC,\n\
 d X   - deletes a breakpoint at X,\n\
@@ -187,37 +187,27 @@ Replace X and Y with one of the following:\n\
 - L+C or L-C where L is a label name and C is a number - address relative to a label.\n");
 }
 
-static void printInstruction(struct MachineState* state, int address) {
+static const char* getInstructionName(unsigned char opcode, bool pad) {
+    switch (opcode) {
+        case 0: return pad ? "LD " : "LD";
+        case 1: return "NOT";
+        case 2: return "ADD";
+        case 3: return "AND";
+        case 4: return pad ? "ST " : "ST";
+        case 5: return "JMP";
+        case 6: return "JMN";
+        case 7: return "JMZ";
+    }
+
+    return "";
+}
+
+static void printInstruction(struct MachineState* state, int address, bool padInstructionName) {
     unsigned short instruction = peekInstruction(state, address);
     unsigned char opcode = instruction >> 13;
     unsigned short argument = instruction & 0x1fff;
 
-    switch (opcode) {
-        case 0: // LD
-            printf("LD ");
-            break;
-        case 1: // NOT
-            printf("NOT ");
-            break;
-        case 2: // ADD
-            printf("ADD ");
-            break;
-        case 3: // AND
-            printf("AND ");
-            break;
-        case 4: // ST
-            printf("ST ");
-            break;
-        case 5: // JMP
-            printf("JMP ");
-            break;
-        case 6: // JMN
-            printf("JMN ");
-            break;
-        case 7: // JMZ
-            printf("JMZ ");
-            break;
-    }
+    printf("%s ", getInstructionName(opcode, padInstructionName));
 
     if (labelNames[argument] == NULL) {
         printf("0x%04X", argument);
@@ -226,20 +216,22 @@ static void printInstruction(struct MachineState* state, int address) {
     }
 
     if (opcode < 4) {
-        unsigned char memoryValue = peekMemory(state, argument);
-
         if (labelNames[argument] == NULL) {
-            printf("    M[0x%04X] = 0x%02X", argument, memoryValue);
+            printf("    M[0x%04X] =", argument);
         } else if (strlen(labelNames[argument]) > 8) {
-            printf("    M[%c%c%c%c%c...] = 0x%02X", labelNames[argument][0], labelNames[argument][1], labelNames[argument][2], labelNames[argument][3], labelNames[argument][4], memoryValue);
+            printf("    M[%c%c%c%c%c...] =", labelNames[argument][0], labelNames[argument][1], labelNames[argument][2], labelNames[argument][3], labelNames[argument][4]);
         } else {
-            printf("    M[%s] = 0x%02X", labelNames[argument], memoryValue);
+            printf("    M[%s] =", labelNames[argument]);
         }
+
+        unsigned char memoryValue = peekMemory(state, argument);
 
         if (dataTypes[argument] == DataTypeChar && isPrintableChar(memoryValue)) {
             printf(" '%c'", memoryValue);
         } else if (dataTypes[argument] == DataTypeInt) {
             printf(" %d", memoryValue);
+        } else {
+            printf(" 0x%02X", memoryValue);
         }
     }
 }
@@ -264,7 +256,11 @@ static bool isFirstCharOfLabel(char ch) {
     return ch == '_' || ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z';
 }
 
-static int evaluateAddressArgument(struct MachineState* state, char* argument) {
+static int parseAddressArgument(struct MachineState* state, char* argument) {
+    if (argument == NULL) {
+        return state->PC;
+    }
+
     if (argument[0] == '+' || argument[0] == '-') {
         int offset = parseNumber(argument, "offset");
         if (errno != 0) {
@@ -311,24 +307,33 @@ static int evaluateAddressArgument(struct MachineState* state, char* argument) {
     return 0;
 }
 
-static struct Range evaluateAddressRangeArgument(struct MachineState* state, char* argument) {
+static struct Range parseAddressRangeArgument(struct MachineState* state, char* argument) {
     if (argument == NULL) {
         return (struct Range) { state->PC, state->PC };
     }
 
-    char* startString = strtok(argument, ":");
-    char* endString = strtok(NULL, "");
+    char* rangeDelimiter = strchr(argument, ':');
 
-    int start = evaluateAddressArgument(state, startString);
+    if (rangeDelimiter == NULL) {
+        int address = parseAddressArgument(state, argument);
+        return (struct Range) { address, address };
+    }
+
+    char* extraRangeDelimiter = strchr(rangeDelimiter + 1, ':');
+
+    if (extraRangeDelimiter != NULL || rangeDelimiter == argument || rangeDelimiter == (argument + strlen(argument) - 1)) {
+        printf("\"%s\" is not a valid address range.\n", argument);
+        return (struct Range) { -1, -1 };
+    }
+
+    *rangeDelimiter = 0;
+
+    int start = parseAddressArgument(state, argument);
     if (start < 0) {
         return (struct Range) { -1, -1 };
     }
 
-    if (endString == NULL) {
-        return (struct Range) { start, start };
-    }
-
-    int end = evaluateAddressArgument(state, endString);
+    int end = parseAddressArgument(state, rangeDelimiter + 1);
     if (end < 0) {
         return (struct Range) { -1, -1 };
     }
@@ -341,23 +346,87 @@ static struct Range evaluateAddressRangeArgument(struct MachineState* state, cha
     return (struct Range) { start, end };
 }
 
+static void printMemory(struct MachineState* state, unsigned short address, int maxLabelLength, bool printValueOfInstructionHigherBit) {
+    bool labelDefined = labelNames[address] != NULL;
+
+    printf(
+        "%s %s 0x%04X %*s%s ",
+        state->PC == address ? "PC" : "  ",
+        breakpoints[address] ? "B" : " ",
+        address,
+        maxLabelLength,
+        labelDefined ? labelNames[address] : "",
+        labelDefined ? ":" : " "
+    );
+
+    unsigned char memVal = peekMemory(state, address);
+
+    switch (dataTypes[address]) {
+        case DataTypeNone:
+            if (address > 0 && dataTypes[address - 1] == DataTypeInstruction) {
+                if (printValueOfInstructionHigherBit || labelNames[address] != NULL) {
+                    printf("0x%02X (second byte of a %s instruction)", memVal, getInstructionName(memVal >> 5, false));
+                }
+            } else {
+                printf("0x%02X", memVal);
+            }
+            break;
+        case DataTypeInstruction:
+            printInstruction(state, address, true);
+            break;
+        case DataTypeChar:
+            if (isPrintableChar(memVal)) {
+                printf("'%c'", memVal);
+            } else {
+                printf("0x%02X", memVal);
+            }
+            break;
+        case DataTypeInt:
+            printf("%d", memVal);
+            break;
+    }
+
+    printf("\n");
+}
+
 static void executeListMemoryCommand(struct MachineState* state, char* argument) {
-    struct Range addresses = evaluateAddressRangeArgument(state, argument);
+    struct Range addresses = parseAddressRangeArgument(state, argument);
     if (addresses.start < 0) return;
 
-    // TODO
+    int longestLabelNameLength = 0;
+    for (int i = addresses.start; i <= addresses.end; ++i) {
+        int labelNameLength = labelNames[i] != NULL ? strlen(labelNames[i]) : 0;
+        longestLabelNameLength = longestLabelNameLength > labelNameLength ? longestLabelNameLength : labelNameLength;
+    }
+
+    for (int i = addresses.start; i <= addresses.end; ++i) {
+        printMemory(state, i, longestLabelNameLength, i == addresses.start);
+    }
 }
 
 static void executeListBreakpointsCommand(struct MachineState* state) {
+    int longestLabelNameLength = 0;
     bool anyBreakpointDefined = false;
     for (int i = 0; i < ADDRESS_SPACE_SIZE; ++i) {
         if (breakpoints[i]) {
-            // TODO
             anyBreakpointDefined = true;
+            int labelNameLength = labelNames[i] != NULL ? strlen(labelNames[i]) : 0;
+            longestLabelNameLength = longestLabelNameLength > labelNameLength ? longestLabelNameLength : labelNameLength;
+        }
+    }
+
+    if (!anyBreakpointDefined) {
+        printf("No breakpoints added.\n");
+        return;
+    }
+
+    for (int i = 0; i < ADDRESS_SPACE_SIZE; ++i) {
+        if (breakpoints[i]) {
+            printMemory(state, i, longestLabelNameLength, true);
         }
     }
     if (!anyBreakpointDefined) {
-        printf("No breakpoint set.\n");
+        printf("No breakpoints added.\n");
     }
 }
 
@@ -390,13 +459,13 @@ static void executeListRegistersCommand(struct MachineState* state) {
 
     printf("    instruction = ");
 
-    printInstruction(state, state->PC);
+    printInstruction(state, state->PC, false);
 
     printf("\n");
 }
 
 static void executeAddBreakpointCommand(struct MachineState* state, char* argument) {
-    int address = evaluateAddressArgument(state, argument);
+    int address = parseAddressArgument(state, argument);
     if (address < 0) return;
     
     if (breakpoints[address]) {
@@ -408,12 +477,12 @@ static void executeAddBreakpointCommand(struct MachineState* state, char* argume
 }
 
 static void executeDeleteBreakpointCommand(struct MachineState* state, char* argument) {
-    int address = evaluateAddressArgument(state, argument);
+    int address = parseAddressArgument(state, argument);
     if (address < 0) return;
     
     if (breakpoints[address]) {
         breakpoints[address] = false;
-        printf("Removed a breakpoint at 0x%04X.\n", address);
+        printf("Deleted a breakpoint at 0x%04X.\n", address);
     } else {
         printf("There isn't a breakpoint at 0x%04X.\n", address);
     }
