@@ -17,6 +17,25 @@ enum DataType {
     DataTypeChar
 };
 
+enum Command {
+    CommandUnknown = 0,
+    CommandHelp,
+    CommandListMemory,
+    CommandListBreakpoints,
+    CommandListLabels,
+    CommandListRegisters,
+    CommandAddBreakpoint,
+    CommandDeleteBreakpoint,
+    CommandContinue,
+    CommandStep,
+    CommandQuit
+};
+
+struct Range {
+    unsigned short start;
+    unsigned short end;
+};
+
 static volatile bool isPaused = true;
 static bool isStepping = false;
 static char* labelNames[ADDRESS_SPACE_SIZE] = { NULL };
@@ -28,13 +47,13 @@ static char charUppercase(char ch) {
     else return ch;
 }
 
-static bool stringEqualCaseInsensitive(char* string1, char* string2) {
+static bool stringsEqualCaseInsensitive(char* string1, char* string2) {
     for (int i = 0;; ++i) {
         if (charUppercase(string1[i]) != charUppercase(string2[i])) {
             return false;
         }
 
-        if (string1[i] == 0) {
+        if (string1[i] == 0 || string2[i] == 0) {
             return true;
         }
     }
@@ -85,11 +104,11 @@ static void parseSymbolsFile(char* path) {
         addressDescribed[addressNumber] = true;
 
         enum DataType dataType;
-        if (stringEqualCaseInsensitive(dataTypeString, "int")) {
+        if (stringsEqualCaseInsensitive(dataTypeString, "int")) {
             dataType = DataTypeInt;
-        } else if (stringEqualCaseInsensitive(dataTypeString, "char")) {
+        } else if (stringsEqualCaseInsensitive(dataTypeString, "char")) {
             dataType = DataTypeChar;
-        } else if (stringEqualCaseInsensitive(dataTypeString, "instruction")) {
+        } else if (stringsEqualCaseInsensitive(dataTypeString, "instruction")) {
             dataType = DataTypeInstruction;
         } else {
             printf("Error: in file \"%s\" line %d: unknown data type \"%s\".\n", path, lineNumber, dataTypeString);
@@ -127,35 +146,23 @@ static bool isPrintableChar(unsigned char ch) {
     return ch >= 32 && ch <= 126;
 }
 
-static bool anyArgumentPresent(char* command) {
-    for (int i = 1; command[i] != 0; ++i) {
-        if (!isspace(command[i])) {
-            printf("Command \"%c\" doesn't take any arguments. Type \"h\" to list all commands.\n", command[0]);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-static void executeHelpCommand(char* command) {
-    if (anyArgumentPresent(command)) return;
-
+static void executeHelpCommand() {
     printf("Commands:\n\
 h     - prints this message\n\
 l     - lists memory values from PC-3 to PC+3\n\
-l X   - lists the memory value of X\n\
+l X   - lists the memory value at X\n\
 l X:Y - lists memory values from X to Y\n\
 a     - lists all registered label names and their values\n\
 r     - lists register A value, program counter value, and instruction at PC \n\
 b     - sets a breakpoint at PC\n\
 b X   - sets a breakpoint at X\n\
+lb    - lists all breakpoints\n\
 d     - deletes a breakpoint at PC\n\
 d X   - deletes a breakpoint at X\n\
 c     - continues simulation\n\
 s     - steps simulation (executes one instruction and pauses)\n\
 q     - quits\n\
-For a command argument value you may use one of the following:\n\
+Replace X and Y with one of the following:\n\
 - a hexadecimal number starting with \"0x\",\n\
 - PC,\n\
 - PC+C or PC-C where C is a decimal number constant,\n\
@@ -201,7 +208,7 @@ static void printInstruction(struct MachineState* state, int address) {
         printf("%s", labelNames[argument]);
     }
 
-    if (opcode < 5) {
+    if (opcode < 4) {
         unsigned char memoryValue = peekMemory(state, argument);
 
         if (labelNames[argument] == NULL) {
@@ -220,13 +227,24 @@ static void printInstruction(struct MachineState* state, int address) {
     }
 }
 
-static void executeListMemoryCommand(struct MachineState* state, char* command) {
+
+static unsigned short parseAddressArgument(struct MachineState* state, char* argument) {
+    
+}
+
+static struct Range parseAddressRangeArgument(struct MachineState* state, char* argument) {
+    
+}
+
+static void executeListMemoryCommand(struct MachineState* state, char* argument) {
     // TODO
 }
 
-static void executeListLabelsCommand(char* command) {
-    if (anyArgumentPresent(command)) return;
+static void executeListBreakpointsCommand(struct MachineState* state) {
+    // TODO
+}
 
+static void executeListLabelsCommand() {
     bool anyLabelDefined = false;
     for (int i = 0; i < ADDRESS_SPACE_SIZE; ++i) {
         if (labelNames[i] != NULL) {
@@ -239,7 +257,7 @@ static void executeListLabelsCommand(char* command) {
     }
 }
 
-static void listRegisters(struct MachineState* state) {
+static void executeListRegistersCommand(struct MachineState* state) {
     printf("A = %d", state->A);
 
     if (isPrintableChar(state->A)) {
@@ -255,88 +273,112 @@ static void listRegisters(struct MachineState* state) {
     printf("\n");
 }
 
-static void executeListRegistersCommand(struct MachineState* state, char* command) {
-    if (anyArgumentPresent(command)) return;
-
-    listRegisters(state);
-}
-
-static void executeAddBreakpointCommand(char* command) {
+static void executeAddBreakpointCommand(char* argument) {
     // TODO
 }
 
-static void executeDeleteBreakpointCommand(char* command) {
+static void executeDeleteBreakpointCommand(char* argument) {
     // TODO
 }
 
-// Returns true if prompt interaction should continue, or false if simulation should resume
-static bool executeContinueCommand(char* command) {
-    if (anyArgumentPresent(command)) return true;
-
-    return false;
+static enum Command getCommand(char* commandName) {
+    if (stringsEqualCaseInsensitive(commandName, "H")) {
+        return CommandHelp;
+    } else if (stringsEqualCaseInsensitive(commandName, "L")) {
+        return CommandListMemory;
+    } else if (stringsEqualCaseInsensitive(commandName, "LB")) {
+        return CommandListBreakpoints;
+    } else if (stringsEqualCaseInsensitive(commandName, "A")) {
+        return CommandListLabels;
+    } else if (stringsEqualCaseInsensitive(commandName, "R")) {
+        return CommandListRegisters;
+    } else if (stringsEqualCaseInsensitive(commandName, "B")) {
+        return CommandAddBreakpoint;
+    } else if (stringsEqualCaseInsensitive(commandName, "D")) {
+        return CommandDeleteBreakpoint;
+    } else if (stringsEqualCaseInsensitive(commandName, "C")) {
+        return CommandContinue;
+    } else if (stringsEqualCaseInsensitive(commandName, "S")) {
+        return CommandStep;
+    } else if (stringsEqualCaseInsensitive(commandName, "Q")) {
+        return CommandQuit;
+    } else {
+        return CommandUnknown;
+    }
 }
-// Returns true if prompt interaction should continue, or false if simulation should resume
-
-static bool executeStepCommand(char* command) {
-    if (anyArgumentPresent(command)) return true;
-
-    isStepping = true;
-
-    return false;
-}
-
-static void executeQuitCommand(char* command) {
-    if (anyArgumentPresent(command)) return;
-
-    printf("Quitting\n");
-    exit(0);
-}
 
 // Returns true if prompt interaction should continue, or false if simulation should resume
-static bool parseCommand(struct MachineState* state, char* command) {
-    if (command[1] == 0 || isspace(command[1])) {
-        switch (charUppercase(command[0]) ) {
-            case 'H':
-                executeHelpCommand(command);
-                return true;
-            case 'L':
-                executeListMemoryCommand(state, command);
-                return true;
-            case 'A':
-                executeListLabelsCommand(command);
-                return true;
-            case 'R':
-                executeListRegistersCommand(state, command);
-                return true;
-            case 'B':
-                executeAddBreakpointCommand(command);
-                return true;
-            case 'D':
-                executeDeleteBreakpointCommand(command);
-                return true;
-            case 'C':
-                return executeContinueCommand(command);
-            case 'S':
-                return executeStepCommand(command);
-            case 'Q':
-                executeQuitCommand(command);
-                return true;
-        }
+static bool executeCommand(struct MachineState* state, char* fullCommand) {
+    char* commandName = strtok(fullCommand, " \n");
+    char* argument = strtok(NULL, " \n");
+    char* extra = strtok(NULL, " \n");
+
+    if (commandName == NULL) {
+        return true;
     }
 
-    printf("Unrecognized command. Type \"h\" to list all commands.\n");
+    enum Command command = getCommand(commandName);
+
+    if (command == CommandUnknown) {
+        printf("Unrecognized command \"%s\". Type \"h\" to list all commands.\n", commandName);
+        return true;
+    }
+
+    switch (command) {
+        case CommandListMemory:
+        case CommandAddBreakpoint:
+        case CommandDeleteBreakpoint:
+            if (extra != NULL) {
+                printf("Command \"%s\" doesn't take more than one argument. Type \"h\" to list all commands.\n", commandName);
+                return true;
+            }
+            break;
+        default:
+            if (argument != NULL) {
+                printf("Command \"%s\" doesn't take any arguments. Type \"h\" to list all commands.\n", commandName);
+                return true;
+            }
+            break;
+    }
+
+    switch (command) {
+        case CommandHelp:
+            executeHelpCommand(); break;
+        case CommandListMemory:
+            executeListMemoryCommand(state, argument); break;
+        case CommandListBreakpoints:
+            executeListBreakpointsCommand(state); break;
+        case CommandListLabels:
+            executeListLabelsCommand(); break;
+        case CommandListRegisters:
+            executeListRegistersCommand(state); break; 
+        case CommandAddBreakpoint:
+            executeAddBreakpointCommand(argument); break;
+        case CommandDeleteBreakpoint:
+            executeDeleteBreakpointCommand(argument); break;
+        case CommandContinue:
+            return false;
+        case CommandStep:
+            isStepping = true;
+            return false;
+        case CommandQuit:
+            printf("Quitting\n");
+            exit(0);
+        default: break;
+    }
+
     return true;
 }
 
 static void interactivePrompt(struct MachineState* state) {
     printf("Paused.   ");
-    listRegisters(state);
+    executeListRegistersCommand(state);
     bool interactive = true;
-    char command[128] = {0};
+    char fullCommand[128] = {0};
     while (interactive) {
         printf("> ");
-        fgets(command, 127, stdin);
-        interactive = parseCommand(state, command);
+        fgets(fullCommand, 127, stdin);
+        interactive = executeCommand(state, fullCommand);
     }
 }
 
@@ -350,7 +392,7 @@ void runDebug(struct MachineState* state, char* symbolsFilePath) {
     startCharacterInput();
 
     do {
-        if (isPaused || isStepping) {
+        if (isPaused || isStepping || breakpoints[state->PC]) {
             isPaused = true;
             isStepping = false;
             endCharacterInput();
