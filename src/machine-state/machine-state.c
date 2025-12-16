@@ -3,9 +3,6 @@
 #include <stdio.h>
 #include <time.h> // POSIX
 
-#define IO_INTERFACE_ADDRESS 0x1fff
-#define TIME_INTERFACE_ADDRESS 0x1ffb
-
 static unsigned long getMs(struct timespec* tp) {
     return tp->tv_nsec / 1000000 * tp->tv_sec * 1000;
 }
@@ -17,15 +14,15 @@ struct MachineState getInitialState()
     return (struct MachineState) { false, { 0 }, 0, 0, getMs(&now), getMs(&now) };
 }
 
-unsigned short peekCurrentInstruction(struct MachineState* state) {
-    return peekMemoryAtAddress(state, state->PC) | (peekMemoryAtAddress(state, state->PC + 1) << 8);
+unsigned short peekInstruction(struct MachineState* state, unsigned short address) {
+    return peekMemory(state, address) | (peekMemory(state, address + 1) << 8);
 }
 
-unsigned short getCurrentInstruction(struct MachineState* state) {
-    return getMemoryAtAddress(state, state->PC) | (getMemoryAtAddress(state, state->PC + 1) << 8);
+unsigned short getInstruction(struct MachineState* state, unsigned short address) {
+    return getMemory(state, address) | (getMemory(state, address + 1) << 8);
 }
 
-unsigned char peekMemoryAtAddress(struct MachineState* state, unsigned short address) {
+unsigned char peekMemory(struct MachineState* state, unsigned short address) {
     address %= 0x2000; 
 
     switch (address) {
@@ -43,7 +40,7 @@ unsigned char peekMemoryAtAddress(struct MachineState* state, unsigned short add
     }
 }
 
-unsigned char getMemoryAtAddress(struct MachineState* state, unsigned short address) {
+unsigned char getMemory(struct MachineState* state, unsigned short address) {
     switch (address) {
         case IO_INTERFACE_ADDRESS:
             return getLastChar();
@@ -52,16 +49,16 @@ unsigned char getMemoryAtAddress(struct MachineState* state, unsigned short addr
             clock_gettime(CLOCK_MONOTONIC, &now);
             state->simulationMeasuredTimeMs = getMs(&now);
         default:
-            return peekMemoryAtAddress(state, address);
+            return peekMemory(state, address);
     }
 }
 
 void step(struct MachineState* state)
 {
-    unsigned short instruction = getCurrentInstruction(state);
+    unsigned short instruction = getInstruction(state, state->PC);
     unsigned char opcode = instruction >> 13;
     unsigned short argument = instruction & 0x1fff;
-    unsigned char memoryAtArgument = getMemoryAtAddress(state, argument);
+    unsigned char memoryAtArgument = getMemory(state, argument);
 
     switch (opcode) {
         case 0: // LD

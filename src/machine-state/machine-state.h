@@ -4,6 +4,8 @@
 #include <stdbool.h>
 
 #define ADDRESS_SPACE_SIZE 0x2000
+#define IO_INTERFACE_ADDRESS 0x1fff
+#define TIME_INTERFACE_ADDRESS 0x1ffb
 
 struct MachineState {
     bool isUnconditionalInfiniteLoop;
@@ -16,13 +18,13 @@ struct MachineState {
 
 struct MachineState getInitialState();
 
-unsigned short peekCurrentInstruction(struct MachineState* state);
+unsigned short peekInstruction(struct MachineState* state, unsigned short address);
 
-unsigned short getCurrentInstruction(struct MachineState* state);
+unsigned short getInstruction(struct MachineState* state, unsigned short address);
 
-unsigned char peekMemoryAtAddress(struct MachineState* state, unsigned short address);
+unsigned char peekMemory(struct MachineState* state, unsigned short address);
 
-unsigned char getMemoryAtAddress(struct MachineState* state, unsigned short address);
+unsigned char getMemory(struct MachineState* state, unsigned short address);
 
 void step(struct MachineState* state);
 
