@@ -24,16 +24,16 @@ All instructions are two words wide and follow the same format:
 
 | Instruction | Opcode | Description | Operation |
 | ----------- | ------ | ----------- | ----------|
-| `LD X`      | `000`  | Load from memory | - Loads [X] into A<br/>- Increments PC by 2 |
-| `NOT X`     | `001`  | Bitwise NOT | - Loads bitwise complement of [X] into A<br/>- Increments PC by 2 |
-| `ADD X`     | `010`  | Arithmetic ADD | - Performs arithmetic addition between [X] and [A]<br/>- Stores the result in A<br/>- Increments PC by 2 |
-| `AND X`     | `011`  | Bitwise AND | - Performs bitwise operation "AND" between [X] and [A]<br/>- Stores the result in A<br/>- Increments PC by 2 |
-| `ST X`      | `100`  | Store to memory | - Stores [A] in memory at the address X<br/>- Increments PC by 2 |
+| `LD X`      | `000`  | Load from memory | - Loads \[X] into A<br/>- Increments PC by 2 |
+| `NOT X`     | `001`  | Bitwise NOT | - Loads bitwise complement of \[X] into A<br/>- Increments PC by 2 |
+| `ADD X`     | `010`  | Arithmetic ADD | - Performs arithmetic addition between \[X] and \[A]<br/>- Stores the result in A<br/>- Increments PC by 2 |
+| `AND X`     | `011`  | Bitwise AND | - Performs bitwise operation "AND" between \[X] and \[A]<br/>- Stores the result in A<br/>- Increments PC by 2 |
+| `ST X`      | `100`  | Store to memory | - Stores \[A] in memory at the address X<br/>- Increments PC by 2 |
 | `JMP X`     | `101`  | Unconditional jump | - Loads X into PC |
-| `JMN X`     | `110`  | Jump if negative | If the most significant bit of [A] is set:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Loads X into PC<br/>Otherwise:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Increments PC by 2 |
-| `JMZ X`     | `111`  | Jump if zero | If all bits of [A] are unset:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Loads X into PC<br/>Otherwise:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Increments PC by 2 |
+| `JMN X`     | `110`  | Jump if negative | If the most significant bit of \[A] is set:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Loads X into PC<br/>Otherwise:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Increments PC by 2 |
+| `JMZ X`     | `111`  | Jump if zero | If all bits of \[A] are unset:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Loads X into PC<br/>Otherwise:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Increments PC by 2 |
 
-\[X] refers to the value at memory address X; \[A] refers to the value stored in the register A.
+\[X] refers to the value at memory address X; \[A] refers to the value in the register A.
 
 ## Memory map
 
