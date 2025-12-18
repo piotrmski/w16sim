@@ -47,9 +47,36 @@ Terminal I/O and monotonic clock functionalities are facilitated via the followi
 
 # W16 simulator
 
-This repository contains a simulator that features terminal input/output and a monotonic clock.
+This repository contains a reference W16 simulator that features terminal input/output and a monotonic clock.
 
-TODO
+## Usage
+
+Run `w16asm path/to/program.bin` to run the simulator until ^C is pressed, or until a JMP instruction to the current address (unconditional infinite loop) is detected.
+
+Flags: 
+
+- `-d` or `--debug` - launches the simulator in paused state and enables the debugger.
+- `-s` or `--symbols` followed by a path to a CSV file - supplies the debugger with names and purposes of memory addresses.
+
+The symbols file is optionally produced by [the assembler](https://github.com/piotrmski/w16asm). It has the following columns:
+
+- the memory address,
+- data type (one of following: "char", "int", or "instruction"),
+- label name (unique; 0-31 characters: digits, upper- or lowercase letters, and underscores; the first character can't be a digit).
+
+Main features of the debugger:
+
+- listing the contents of program memory,
+- listing the values of registers,
+- disassembling instructions,
+- stepping through instructions,
+- setting breakpoints.
+
+## Building
+
+A C compiler supporting the C23 standard, aliased as `CC` (such as `GCC` or `Clang`) and `make` are required to build this simulator from source.
+
+Run `make` to build the simulator. The `w16sim` executable will be produced in the `dist` directory.
 
 # License
 
