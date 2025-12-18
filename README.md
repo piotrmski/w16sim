@@ -74,7 +74,7 @@ Main features of the debugger:
 
 ## Building
 
-A C compiler supporting the C23 standard, aliased as `CC` (such as `GCC` or `Clang`) and `make` are required to build this simulator from source.
+A C compiler supporting the C23 standard, aliased as `CC` (such as `GCC` or `Clang`) and `make` in a POSIX-compliant environment (such as Linux or MacOS) are required to build this simulator from source.
 
 Run `make` to build the simulator. The `w16sim` executable will be produced in the `dist` directory.
 
