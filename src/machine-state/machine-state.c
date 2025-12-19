@@ -1,17 +1,12 @@
 #include "machine-state.h"
 #include "../keyboard-input/keyboard-input.h"
+#include "../time/time.h"
 #include <stdio.h>
-#include <time.h> // POSIX
-
-static unsigned long getMs(struct timespec* tp) {
-    return tp->tv_nsec / 1000000 * tp->tv_sec * 1000;
-}
 
 struct MachineState getInitialState()
 {
-    struct timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    return (struct MachineState) { false, { 0 }, 0, 0, getMs(&now), getMs(&now) };
+    unsigned long now = getTimeMs();
+    return (struct MachineState) { false, { 0 }, 0, 0, now, now, 0 };
 }
 
 unsigned short peekInstruction(struct MachineState* state, unsigned short address) {
@@ -32,7 +27,7 @@ unsigned char peekMemory(struct MachineState* state, unsigned short address) {
         case TIME_INTERFACE_ADDRESS + 1:
         case TIME_INTERFACE_ADDRESS + 2:
         case TIME_INTERFACE_ADDRESS + 3:
-            unsigned long timeDifference = state->simulationMeasuredTimeMs - state->simulationStartTimeMs;
+            unsigned long timeDifference = state->simulationMeasuredTimeMs - state->simulationStartTimeMs - state->simulationIdleTimeMs;
             int offset = (address - TIME_INTERFACE_ADDRESS) * 8;
             return timeDifference >> offset;
         default:
@@ -45,9 +40,7 @@ unsigned char getMemory(struct MachineState* state, unsigned short address) {
         case IO_INTERFACE_ADDRESS:
             return getLastChar();
         case TIME_INTERFACE_ADDRESS:
-            struct timespec now;
-            clock_gettime(CLOCK_MONOTONIC, &now);
-            state->simulationMeasuredTimeMs = getMs(&now);
+            state->simulationMeasuredTimeMs = getTimeMs();
         default:
             return peekMemory(state, address);
     }

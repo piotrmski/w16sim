@@ -1,6 +1,7 @@
 #include "debug-runtime.h"
 #include "../machine-state/machine-state.h"
 #include "../keyboard-input/keyboard-input.h"
+#include "../time/time.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
@@ -659,9 +660,11 @@ void runDebug(struct MachineState* state, char* symbolsFilePath) {
         if (isPaused || isStepping || breakpoints[state->PC]) {
             isPaused = true;
             isStepping = false;
+            unsigned long idleStartTime = getTimeMs();
             endCharacterInput();
             interactivePrompt(state);
             startCharacterInput();
+            state->simulationIdleTimeMs += getTimeMs() - idleStartTime;
             isPaused = false;
         }
         
