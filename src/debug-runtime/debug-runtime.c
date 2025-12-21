@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h> // POSIX
 
 #define LABEL_NAME_MAX_LENGTH 31
 
@@ -752,6 +753,7 @@ void runDebug(struct MachineState* state, char* symbolsFilePath) {
         }
         
         step(state);
+        usleep(100); // TODO configurable clock
     } while (!state->isUnconditionalInfiniteLoop);
 
     endCharacterInput();

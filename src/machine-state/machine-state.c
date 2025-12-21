@@ -71,7 +71,10 @@ void step(struct MachineState* state)
             state->PC += 2;
             break;
         case 4: // ST
-            if (argument == IO_INTERFACE_ADDRESS) putchar(state->A);
+            if (argument == IO_INTERFACE_ADDRESS) {
+                putchar(state->A);
+                fflush(stdout);
+            }
             else state->memory[argument] = state->A;
             state->PC += 2;
             break;
