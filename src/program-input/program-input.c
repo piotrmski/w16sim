@@ -72,9 +72,9 @@ struct ProgramInput getProgramInput(int argc, const char * argv[]) {
     }
 
     if (argc == 1 || helpFlag) {
-        printf("W16 simulator. Copyright (C) 2025 Piotr Marczyński. This program is licensed under GNU GPL v3. See file COPYING.\n");
+        printf("W13 simulator. Copyright (C) 2025 Piotr Marczyński. This program is licensed under GNU GPL v3. See file COPYING.\n");
         printf("Usage:\n");
-        printf("w16sim [path/to/binary.bin]\n");
+        printf("w13sim [path/to/binary.bin]\n");
         printf("runs the simulator until ^C is pressed, or until a JMP instruction to the current address (unconditional infinite loop) is detected.\n\n");
         printf("Options:\n");
         printf("-c [frequency] or --clock [frequency] - sets maximum clock frequency in kHz. Must be between 1 and 1000000. Default is 1000.\n");

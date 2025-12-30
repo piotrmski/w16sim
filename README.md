@@ -1,10 +1,10 @@
-# W16
+# W13
 
-W16 is an imaginary, minimal 8-bit microarchitecture and ISA (instruction set architecture) with only **eight instructions, one addressing mode, and 13 bits of addressable memory**.
+W13 is an imaginary, minimal 8-bit microarchitecture and ISA (instruction set architecture) with only **eight instructions, one addressing mode, and 13 bits of addressable memory**.
 
 See full details regarding the hypothetical [microarchitecture](/docs/microarchitecture.md). 
 
-See also [W16 assembler](https://github.com/piotrmski/w16asm).
+See also [W13 assembler](https://github.com/piotrmski/w13asm).
 
 ## Instruction set architecture
 
@@ -37,21 +37,26 @@ All instructions are two words wide and follow the same format:
 
 ## Memory map
 
-Terminal I/O and monotonic clock functionalities are facilitated via the following memory map:
+Program memory is at 0x0000-0x1FFA.
 
-- 0x0000-0x1FFA - program memory,
-- 0x1FFB-0x1FFE - 32-bit relative time - reading from these addresses yields a number of milliseconds since the simulator has started until the last (or current) time 0x1FFB was (or is) read,
-- 0x1FFF - terminal I/O:
-    - Loading from 0x1FFF removes a character from the standard input buffer and yields it, or 0 if the buffer is empty,
+Two additional memory-mapped registers exist to facilitate terminal I/O and monotonic clock functionalities.
+
+- Terminal I/O register at 0x1FFF:
+    - Putting a character in the standard input updates the register to the character value,
+    - Loading from 0x1FFF yields the register value and clears it,
     - Storing to 0x1FFF pushes a character to the standard output buffer.
+- Monotonic clock value register at 0x1FFB-0x1FFE:
+    - Loading from 0x1FFB updates the register to the current number of milliseconds since the simulator has started and yields the least significant byte of the register value,
+    - Loading from 0x1FFC-0x1FFE yields more significant bytes of the register value,
+    - Storing to 0x1FFB-0x1FFE does nothing.
 
-# W16 simulator
+# W13 simulator
 
-This repository contains a reference W16 simulator that features terminal input/output and a monotonic clock.
+This repository contains a reference W13 simulator that features terminal input/output and a monotonic clock.
 
 ## Usage
 
-Run `w16asm path/to/program.bin` to run the simulator until ^C is pressed, or until a JMP instruction to the current address (unconditional infinite loop) is detected.
+Run `w13asm path/to/program.bin` to run the simulator until ^C is pressed, or until a JMP instruction to the current address (unconditional infinite loop) is detected.
 
 Options: 
 
@@ -59,7 +64,7 @@ Options:
 - `-d` or `--debug` - launches the simulator in paused state and enables the debugger.
 - `-s` or `--symbols` followed by a path to a CSV file - supplies the debugger with names and contents of memory addresses.
 
-The symbols file is optionally produced by [the assembler](https://github.com/piotrmski/w16asm). It has the following columns:
+The symbols file is optionally produced by [the assembler](https://github.com/piotrmski/w13asm). It has the following columns:
 
 - the memory address,
 - data type (one of following: "char", "int", or "instruction"),
@@ -78,7 +83,7 @@ Main features of the debugger:
 
 A C compiler supporting the C23 standard, aliased as `CC` (such as `GCC` or `Clang`) and `make` in a POSIX-compliant environment (such as Linux or MacOS) are required to build this simulator from source.
 
-Run `make` to build the simulator. The `w16sim` executable will be produced in the `dist` directory.
+Run `make` to build the simulator. The `w13sim` executable will be produced in the `dist` directory.
 
 # License
 

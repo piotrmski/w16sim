@@ -1,8 +1,8 @@
-# Hypothetical microarchitecture of W16
+# Hypothetical microarchitecture of W13
 
-![The data path of W16](./data-path.png)
+![The data path of W13](./data-path.png)
 
-This diagram shows the data path of W16 with all major components and control signals used to propagate data between them.
+This diagram shows the data path of W13 with all major components and control signals used to propagate data between them.
 
 ## Components
 
@@ -38,7 +38,7 @@ Not underlined are level control signals, active during the high level of the cl
 
 ## State machine
 
-![The state machine of W16](./state-machine.png)
+![The state machine of W13](./state-machine.png)
 The state machine determines what signals are active during each state and what the next state in the next clock cycle will be based on the current state, the opcode in the most significant 3 bits of IR, and the value in the register A.
 
 ## Control store

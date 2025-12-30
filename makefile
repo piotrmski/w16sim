@@ -1,4 +1,4 @@
-appName := w16sim
+appName := w13sim
 CFLAGS  := -std=c23
 
 srcFiles := $(shell find src -name "*.c")
